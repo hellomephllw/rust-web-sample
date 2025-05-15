@@ -28,7 +28,7 @@ async fn main() {
                 method = %request.method(),
                 uri = %request.uri(),
             )
-    })
+        })
         .on_request(DefaultOnRequest::new().level(Level::INFO))  // 确保级别匹配
         .on_response(DefaultOnResponse::new().level(Level::INFO));
 
