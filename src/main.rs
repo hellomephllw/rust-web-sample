@@ -6,35 +6,30 @@ use axum::extract::{Path, Query, Request};
 use axum::http::StatusCode;
 use axum::routing::{get, get_service};
 use serde::Deserialize;
-use tower::service_fn;
+use tower::{service_fn, ServiceBuilder};
 use tower_http::services::ServeDir;
-use tower_http::trace::{DefaultOnRequest, DefaultOnResponse, TraceLayer};
-use tracing::{info, info_span, Level};
+use tower_http::trace::{DefaultOnRequest, DefaultOnResponse, HttpMakeClassifier, TraceLayer};
+use tracing::{info, info_span, Level, Span};
 use uuid::Uuid;
+use crate::web::public::public_auth_api;
+use crate::web::public::public_info_api;
+use crate::web::user::user_api;
 
 mod web;
 
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
-        .with_env_filter("info,tower_http=debug")
+        .with_env_filter("info,tower_http=info")
         .init();
-
-    let trace_layer = TraceLayer::new_for_http()
-        .make_span_with(|request: &Request<_>| {
-            let trace_id = Uuid::new_v4(); // 生成唯一 traceId
-            info_span!("http_request",
-                trace_id = %trace_id,
-                method = %request.method(),
-                uri = %request.uri(),
-            )
-        })
-        .on_request(DefaultOnRequest::new().level(Level::INFO))  // 确保级别匹配
-        .on_response(DefaultOnResponse::new().level(Level::INFO));
 
     let routes_all = Router::new()
         .merge(routes_hello())
-        .layer(trace_layer)
+        .nest("/user", user_api::apis())
+        .nest("/public/base", public_info_api::apis())
+        .nest("/public/auth", public_auth_api::apis())
+        .layer(ServiceBuilder::new()
+            .layer(log_trace_layer()))
         .fallback_service(routes_static());
 
     let addr = "127.0.0.1:3000";
@@ -43,6 +38,19 @@ async fn main() {
         tokio::net::TcpListener::bind(addr).await.unwrap(),
         routes_all.into_make_service()
     ).await.unwrap();
+}
+fn log_trace_layer() -> TraceLayer<HttpMakeClassifier, impl Fn(&Request<Body>) -> Span + Clone + Send + Sync + 'static> {
+    TraceLayer::new_for_http()
+        .make_span_with(|request: &Request<_>| {
+            let trace_id = Uuid::new_v4();
+            info_span!("http_request",
+                trace_id = %trace_id,
+                method = %request.method(),
+                uri = %request.uri(),
+            )
+        })
+        .on_request(DefaultOnRequest::new().level(Level::INFO))
+        .on_response(DefaultOnResponse::new().level(Level::INFO))
 }
 
 fn routes_static() -> Router {
