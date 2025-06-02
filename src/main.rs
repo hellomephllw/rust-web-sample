@@ -23,6 +23,7 @@ use crate::api::user::user_api;
 mod api;
 mod model;
 mod schema;
+mod core;
 
 type DbPool = r2d2::Pool<ConnectionManager<MysqlConnection>>;
 
