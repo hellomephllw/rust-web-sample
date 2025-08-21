@@ -6,6 +6,7 @@ use axum::body::Body;
 use axum::extract::{Path, Query, Request, State};
 use axum::http::StatusCode;
 use axum::routing::{get, get_service};
+use clap::Parser;
 use diesel::{MysqlConnection, RunQueryDsl};
 use diesel::query_dsl::select_dsl::SelectDsl;
 use diesel::r2d2::{self, ConnectionManager};
@@ -27,43 +28,21 @@ mod core;
 
 type DbPool = r2d2::Pool<ConnectionManager<MysqlConnection>>;
 
-#[derive(Clone)]
-struct AppState {
-    db_pool: DbPool,
-}
-
-// 检查数据库连接的函数
-fn check_for_backend(pool: &DbPool) -> Result<(), diesel::result::Error> {
-    let mut conn = pool.get().map_err(|e| {
-        eprintln!("Failed to get connection from pool: {}", e);
-        diesel::result::Error::DatabaseError(
-            diesel::result::DatabaseErrorKind::Unknown,
-            Box::new(e.to_string()),
-        )
-    })?;
-
-    // 执行简单的查询以检查连接
-    diesel::sql_query("SELECT 1")
-        .execute(&mut conn)
-        .map_err(|e| {
-            eprintln!("Failed to execute test query: {}", e);
-            e
-        })?;
-
-    println!("MySQL backend is reachable");
-    Ok(())
-}
-
 #[tokio::main]
 async fn main() {
     // 加载环境变量
-    dotenv().ok();
+    let cli = Cli::parse();
+    // 根据 profile 加载对应的 .env 文件
+    let env_file = format!(".env.{}", cli.profile);
+    dotenvy::from_filename(&env_file).expect("Failed to load .env file");
+
     let database_url = env::var("DATABASE_URL")
         .expect("DATABASE_URL must be set in .env file");
 
     // 创建数据库连接池
     let manager = ConnectionManager::<MysqlConnection>::new(database_url);
     let pool = r2d2::Pool::builder()
+        .min_idle(Some(5))
         .max_size(15) // 设置最大连接数
         .build(manager)
         .expect("Failed to create database pool");
@@ -97,6 +76,42 @@ async fn main() {
         routes_all.into_make_service()
     ).await.unwrap();
 }
+
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Cli {
+    #[arg(short, long, default_value = "dev")]
+    profile: String,// 环境
+}
+
+#[derive(Clone)]
+struct AppState {
+    db_pool: DbPool,
+}
+
+// 检查数据库连接的函数
+fn check_for_backend(pool: &DbPool) -> Result<(), diesel::result::Error> {
+    let mut conn = pool.get().map_err(|e| {
+        eprintln!("Failed to get connection from pool: {}", e);
+        diesel::result::Error::DatabaseError(
+            diesel::result::DatabaseErrorKind::Unknown,
+            Box::new(e.to_string()),
+        )
+    })?;
+
+    // 执行简单的查询以检查连接
+    diesel::sql_query("SELECT 1")
+        .execute(&mut conn)
+        .map_err(|e| {
+            eprintln!("Failed to execute test query: {}", e);
+            e
+        })?;
+
+    println!("MySQL backend is reachable");
+    Ok(())
+}
+
 fn log_trace_layer() -> TraceLayer<HttpMakeClassifier, impl Fn(&Request<Body>) -> Span + Clone + Send + Sync + 'static> {
     TraceLayer::new_for_http()
         .make_span_with(|request: &Request<_>| {
