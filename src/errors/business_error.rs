@@ -1,12 +1,13 @@
+use std::backtrace::Backtrace;
 use std::fmt;
-use serde::Serialize;
 use crate::constants::error_code_const::FAILED_CODE;
 
 /// 业务异常的详细信息
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug)]
 pub struct BusinessError {
     pub code: i32,
     pub message: String,
+    pub backtrace: Backtrace,
 }
 
 impl BusinessError {
@@ -14,6 +15,7 @@ impl BusinessError {
         BusinessError {
             code,
             message: message.into(),
+            backtrace: Backtrace::capture(),
         }
     }
 

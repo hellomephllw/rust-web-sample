@@ -1,8 +1,8 @@
+use std::fmt;
 use axum::Json;
 use axum::response::{IntoResponse, Response};
 use serde::Serialize;
 use crate::constants::error_code_const::FAILED_CODE;
-use crate::enums::errors::common_error::CommonError;
 
 #[derive(Debug, Serialize)]
 pub struct ApiResponse<T> {
@@ -40,4 +40,10 @@ impl<T> IntoResponse for ApiResponse<T> {
             .into_response()
     }
 
+}
+
+impl fmt::Display for ApiResponse<()> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", serde_json::to_string(self).unwrap())
+    }
 }
