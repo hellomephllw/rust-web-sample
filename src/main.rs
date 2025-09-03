@@ -1,23 +1,19 @@
+use crate::constants::error_code_const;
 use crate::enums::errors::common_error::CommonError;
-use crate::errors::business_error::BusinessError;
-use crate::errors::error_types;
 use crate::models::responses::response::ApiResponse;
 use crate::routes::public::public_auth_api;
 use crate::routes::public::public_info_api;
 use crate::routes::user::user_api;
 use axum::body::Body;
-use axum::error_handling::HandleErrorLayer;
 use axum::extract::{Path, Query, Request, State};
 use axum::http::StatusCode;
-use axum::middleware::Next;
 use axum::response::{Html, IntoResponse, Response};
 use axum::routing::{get, get_service};
-use axum::{Router, middleware};
+use axum::{Router};
 use clap::Parser;
 use diesel::query_dsl::select_dsl::SelectDsl;
 use diesel::r2d2::{self, ConnectionManager};
 use diesel::{MysqlConnection, RunQueryDsl};
-use dotenvy::dotenv;
 use serde::Deserialize;
 use std::backtrace::Backtrace;
 use std::convert::Infallible;
@@ -26,12 +22,11 @@ use tokio::net::TcpListener;
 use tower::{ServiceBuilder, service_fn};
 use tower_http::catch_panic::CatchPanicLayer;
 use tower_http::services::ServeDir;
-use tower_http::trace::{DefaultOnRequest, DefaultOnResponse, HttpMakeClassifier, TraceLayer};
+use tower_http::trace::{
+    DefaultOnRequest, DefaultOnResponse, HttpMakeClassifier,
+    TraceLayer,
+};
 use tracing::{Level, Span, error, info, info_span};
-use tracing::instrument::WithSubscriber;
-use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
-use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::{EnvFilter, fmt};
 use uuid::Uuid;
 
 mod constants;
@@ -80,7 +75,7 @@ async fn main() {
         .nest("/public/base", public_info_api::apis())
         .nest("/public/auth", public_auth_api::apis())
         .layer(ServiceBuilder::new().layer(log_trace_id_layer()))// 日志添加trace_id
-        .layer(CatchPanicLayer::new())// 处理panic日志
+        .layer(CatchPanicLayer::custom(handle_panic))// 处理panic日志
         .fallback_service(routes_static());
 
     let addr = "127.0.0.1:3000";
@@ -131,9 +126,9 @@ fn check_for_backend(pool: &DbPool) -> Result<(), diesel::result::Error> {
 fn init_tracing() {
     tracing_subscriber::fmt()
         .with_env_filter("info,tower_http=info")
-        .with_file(true)// 打印日志所在文件
-        .with_line_number(true)// 打印日志所在行
-        .with_ansi(true)// 日志颜色
+        .with_file(true) // 打印日志所在文件
+        .with_line_number(true) // 打印日志所在行
+        .with_ansi(true) // 日志颜色
         .init();
 }
 
@@ -156,6 +151,13 @@ fn log_trace_id_layer() -> TraceLayer<HttpMakeClassifier, impl Fn(&Request<Body>
         })
         .on_request(DefaultOnRequest::new().level(Level::INFO))
         .on_response(DefaultOnResponse::new().level(Level::INFO))
+}
+
+/// 统一处理panic
+fn handle_panic(_err: Box<dyn std::any::Any + Send + 'static>) -> Response {
+    let response =
+        ApiResponse::<()>::failed(error_code_const::FAILED_CODE, "服务器繁忙".to_string());
+    response.into_response()
 }
 
 /// 静态文件目录
@@ -201,26 +203,19 @@ async fn hello_path_handler(Path(name): Path<String>) -> impl IntoResponse {
 }
 
 async fn get_users(State(state): State<AppState>) -> Result<String, CommonError> {
-    let mut conn = state
-        .db_pool
-        .get()
-        .map_err(|e| {
-            CommonError::Sys{
-                message: e.to_string(),
-                backtrace: Backtrace::capture()
-            }
-        })?;
+    let mut conn = state.db_pool.get().map_err(|e| CommonError::Sys {
+        message: e.to_string(),
+        backtrace: Backtrace::capture(),
+    })?;
 
     // 假设有一个 users 表，加载所有用户
     use crate::schema::rust_user::dsl::*;
     let results = rust_user
         .select(name)
         .load::<String>(&mut conn)
-        .map_err(|e| {
-            CommonError::Sys{
-                message: e.to_string(),
-                backtrace: Backtrace::capture()
-            }
+        .map_err(|e| CommonError::Sys {
+            message: e.to_string(),
+            backtrace: Backtrace::capture(),
         })?;
 
     Ok(format!("Users: {:?}", results))
