@@ -41,33 +41,27 @@ type DbPool = r2d2::Pool<ConnectionManager<MysqlConnection>>;
 
 #[tokio::main]
 async fn main() {
+    // 初始化日志
+    init_tracing();
+
     // 加载环境变量
     let cli = Cli::parse();
     // 根据 profile 加载对应的 .env 文件
     let env_file = format!(".env.{}", cli.profile);
     dotenvy::from_filename(&env_file).expect("Failed to load .env file");
 
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set in .env file");
-
     // 创建数据库连接池
-    let manager = ConnectionManager::<MysqlConnection>::new(database_url);
-    let pool = r2d2::Pool::builder()
-        .min_idle(Some(5))
-        .max_size(15) // 设置最大连接数
-        .build(manager)
-        .expect("Failed to create database pool");
-
-    // 检查数据库连接
-    if let Err(e) = check_for_backend(&pool) {
-        error!("Database backend check failed: {}", e);
-        return;
-    }
+    let pool = match create_db_pool() {
+        Ok(p) => p,
+        Err(e) => {
+            error!("Database backend check failed: {}", e);
+            return;
+        }
+    };
+    info!("Database connection pool created successfully.");
 
     // 创建应用程序状态
     let app_state = AppState { db_pool: pool };
-
-    // 初始化tracing
-    init_tracing();
 
     let routes_all = Router::new()
         .merge(routes_hello(app_state))
@@ -100,10 +94,22 @@ struct AppState {
     db_pool: DbPool,
 }
 
+/// 创建数据库连接池
+fn create_db_pool() -> Result<DbPool, diesel::result::Error> {
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set in .env file");
+    let manager = ConnectionManager::<MysqlConnection>::new(database_url);
+    let pool = r2d2::Pool::builder()
+        .min_idle(Some(5))
+        .max_size(15) // 设置最大连接数
+        .build(manager)
+        .expect("Failed to create database pool");
+    check_for_backend(&pool)?;
+    Ok(pool)
+}
+
 /// 检查数据库连接的函数
 fn check_for_backend(pool: &DbPool) -> Result<(), diesel::result::Error> {
     let mut conn = pool.get().map_err(|e| {
-        error!("Failed to get connection from pool: {}", e);
         diesel::result::Error::DatabaseError(
             diesel::result::DatabaseErrorKind::Unknown,
             Box::new(e.to_string()),
@@ -113,12 +119,8 @@ fn check_for_backend(pool: &DbPool) -> Result<(), diesel::result::Error> {
     // 执行简单的查询以检查连接
     diesel::sql_query("SELECT 1")
         .execute(&mut conn)
-        .map_err(|e| {
-            error!("Failed to execute test query: {}", e);
-            e
-        })?;
+        .map_err(|e| e)?;
 
-    info!("MySQL backend is reachable");
     Ok(())
 }
 
