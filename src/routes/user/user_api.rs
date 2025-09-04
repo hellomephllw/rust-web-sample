@@ -1,8 +1,5 @@
-use axum::extract::Query;
-use axum::response::IntoResponse;
-use axum::Router;
 use axum::routing::get;
-use crate::HelloParams;
+use axum::Router;
 
 pub fn apis() -> Router {
     Router::new()

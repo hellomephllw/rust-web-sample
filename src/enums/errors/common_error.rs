@@ -1,11 +1,9 @@
-use std::backtrace;
 use std::backtrace::Backtrace;
 use axum::http::StatusCode;
 use axum::Json;
 use axum::response::{IntoResponse, Response};
 use diesel::r2d2;
-use thiserror::Error;
-use tracing::{error, info};
+use tracing::{error};
 use crate::constants::error_code_const::FAILED_CODE;
 use crate::errors::business_error::BusinessError;
 use crate::models::responses::response::ApiResponse;
