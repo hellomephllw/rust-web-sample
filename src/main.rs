@@ -48,17 +48,17 @@ async fn main() {
     let cli = Cli::parse();
     // 根据 profile 加载对应的 .env 文件
     let env_file = format!(".env.{}", cli.profile);
-    dotenvy::from_filename(&env_file).expect("Failed to load .env file");
+    dotenvy::from_filename(&env_file).expect("加载.env失败");
 
     // 创建数据库连接池
     let pool = match create_db_pool() {
         Ok(p) => p,
         Err(e) => {
-            error!("Database backend check failed: {}", e);
+            error!("数据库检查失败: {}", e);
             return;
         }
     };
-    info!("Database connection pool created successfully.");
+    info!("完成创建数据库连接池");
 
     // 创建应用程序状态
     let app_state = AppState { db_pool: pool };
@@ -96,13 +96,13 @@ struct AppState {
 
 /// 创建数据库连接池
 fn create_db_pool() -> Result<DbPool, diesel::result::Error> {
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set in .env file");
+    let database_url = env::var("DATABASE_URL").expect(".env文件中缺失DATABASE_URL变量");
     let manager = ConnectionManager::<MysqlConnection>::new(database_url);
     let pool = r2d2::Pool::builder()
         .min_idle(Some(5))
         .max_size(15) // 设置最大连接数
         .build(manager)
-        .expect("Failed to create database pool");
+        .expect("创建数据库连接池失败");
     check_for_backend(&pool)?;
     Ok(pool)
 }
@@ -170,7 +170,7 @@ fn routes_static() -> Router {
             Ok::<_, Infallible>(
                 Response::builder()
                     .status(StatusCode::NOT_FOUND)
-                    .body(Body::from("File not found"))
+                    .body(Body::from("找不到资源"))
                     .unwrap(),
             )
         }))),
