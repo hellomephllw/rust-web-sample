@@ -61,10 +61,10 @@ async fn main() {
     info!("完成创建数据库连接池");
 
     // 创建应用程序状态
-    let app_state = AppState { db_pool: pool };
+    let root_state = RootState { db_pool: pool };
 
     let routes_all = Router::new()
-        .merge(routes_hello(app_state))
+        .merge(routes_hello(root_state))
         .nest("/user", user_api::apis())
         .nest("/public/base", public_info_api::apis())
         .nest("/public/auth", public_auth_api::apis())
@@ -90,7 +90,7 @@ struct Cli {
 }
 
 #[derive(Clone)]
-struct AppState {
+struct RootState {
     db_pool: DbPool,
 }
 
@@ -177,7 +177,7 @@ fn routes_static() -> Router {
     )
 }
 
-fn routes_hello(app_state: AppState) -> Router {
+fn routes_hello(app_state: RootState) -> Router {
     Router::new()
         .route("/hello", get(hello_handler))
         .route("/hello/:name", get(hello_path_handler))
@@ -204,11 +204,8 @@ async fn hello_path_handler(Path(name): Path<String>) -> impl IntoResponse {
     Html(format!("Hello World! {name}"))
 }
 
-async fn get_users(State(state): State<AppState>) -> Result<String, CommonError> {
-    let mut conn = state.db_pool.get().map_err(|e| CommonError::Sys {
-        message: e.to_string(),
-        backtrace: Backtrace::capture(),
-    })?;
+async fn get_users(State(state): State<RootState>) -> Result<String, CommonError> {
+    let mut conn = state.db_pool.get()?;
 
     // 假设有一个 users 表，加载所有用户
     use crate::schema::rust_user::dsl::*;

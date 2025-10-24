@@ -3,6 +3,7 @@ use axum::http::StatusCode;
 use axum::Json;
 use axum::response::{IntoResponse, Response};
 use diesel::r2d2;
+use diesel::r2d2::PoolError;
 use tracing::{error};
 use crate::constants::error_code_const::FAILED_CODE;
 use crate::errors::business_error::BusinessError;
@@ -41,6 +42,15 @@ impl From<diesel::result::Error> for CommonError {
 /// 转换数据库连接池错误
 impl From<r2d2::Error> for CommonError {
     fn from(err: r2d2::Error) -> Self {
+        CommonError::Sys {
+            message: format!("数据库连接池错误: {}", err),
+            backtrace: Backtrace::capture(),
+        }
+    }
+}
+
+impl From<PoolError> for CommonError {
+    fn from(err: PoolError) -> Self {
         CommonError::Sys {
             message: format!("数据库连接池错误: {}", err),
             backtrace: Backtrace::capture(),
