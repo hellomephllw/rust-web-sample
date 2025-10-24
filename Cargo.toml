@@ -17,7 +17,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 thiserror = "1.0"
 uuid = { version = "1.7", features = [ "serde", "v4"] }
-diesel = { version = "2.2.10", features = ["mysql", "r2d2"] }
+diesel = { version = "2.3.2", features = ["mysql", "r2d2"] }
 dotenvy = "0.15"
 clap = { version = "4.0", features = ["derive"] }
 openssl = "0.10"
