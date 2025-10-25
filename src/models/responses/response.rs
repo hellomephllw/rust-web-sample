@@ -2,7 +2,7 @@ use std::fmt;
 use axum::Json;
 use axum::response::{IntoResponse, Response};
 use serde::Serialize;
-use crate::constants::error_code_const::FAILED_CODE;
+use crate::constants::error_code_const::SUCCESS_CODE;
 
 #[derive(Debug, Serialize)]
 pub struct ApiResponse<T> {
@@ -18,7 +18,7 @@ impl<T> ApiResponse<T> {
     }
 
     pub fn success(data: Option<T>) -> Self {
-        ApiResponse::new(FAILED_CODE, data, None)
+        ApiResponse::new(SUCCESS_CODE, data, None)
     }
 
     pub fn failed(code: i32, message: String) -> Self {
