@@ -1,10 +1,14 @@
 [package]
 name = "rust-web-sample"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
-[build]
-target-dir = "./target"
+[profile.dev]
+debug = true
+opt-level = 0
+lto = false
+codegen-units = 256
+incremental = true
 
 [dependencies]
 axum = "0.7"
@@ -16,7 +20,7 @@ tower-http = { version = "0.5", features = ["fs", "trace", "compression-br", "ca
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 thiserror = "1.0"
-uuid = { version = "1.7", features = [ "serde", "v4"] }
+uuid = { version = "1.7", features = ["serde", "v4"] }
 diesel = { version = "2.3.2", features = ["mysql", "r2d2"] }
 mysqlclient-sys = { version = "0.4.7", features = ["buildtime_bindgen"] }
 dotenvy = "0.15"
