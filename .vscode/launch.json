@@ -1,0 +1,46 @@
+{
+    // VS Code launch configurations for rust-web-sample
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run rust-web-sample (dev)",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/target/debug/rust-web-sample",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "cargo": {
+                "args": ["run", "--profile", "dev"],
+                "filter": {
+                    "name": "rust-web-sample",
+                    "kind": "bin"
+                }
+            },
+            "env": {
+                "RUST_LOG": "info",
+                "CARGO_TERM_COLOR": "always"
+            },
+            "sourceLanguages": ["rust"]
+        },
+        {
+            "name": "Debug rust-web-sample (dev)",
+            "type": "lldb",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "cargo": {
+                "args": ["build", "--profile", "dev"],
+                "filter": {
+                    "name": "rust-web-sample",
+                    "kind": "bin"
+                },
+            },
+            "env": {
+                "RUST_LOG": "info",
+                "CARGO_TERM_COLOR": "always"
+            },
+            "stopOnEntry": false
+        }
+    ]
+}
+  

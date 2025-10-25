@@ -1,0 +1,41 @@
+{
+    // VS Code tasks to build and run the service
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "cargo build",
+            "type": "shell",
+            "command": "cargo",
+            "args": ["build"],
+            "options": {
+              "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": ["$rustc"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+        },
+        {
+            "label": "cargo clean & build",
+            "type": "shell",
+            "command": "cargo clean && cargo build",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": ["$rustc"]
+        },
+        {
+            "label": "cargo run (dev)",
+            "type": "shell",
+            "command": "cargo",
+            "args": ["run", "--", "--profile", "dev"],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": ["$rustc"],
+            "dependsOn": ["cargo clean & build"]
+        }
+    ]
+  }
+  
