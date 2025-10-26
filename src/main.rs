@@ -9,7 +9,7 @@ use axum::extract::{Path, Query, Request, State};
 use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse, Response};
 use axum::routing::{get, get_service};
-use axum::{Router};
+use axum::Router;
 use clap::Parser;
 use diesel::query_dsl::select_dsl::SelectDsl;
 use diesel::r2d2::{self, ConnectionManager};
@@ -19,14 +19,11 @@ use std::backtrace::Backtrace;
 use std::convert::Infallible;
 use std::env;
 use tokio::net::TcpListener;
-use tower::{ServiceBuilder, service_fn};
+use tower::{service_fn, ServiceBuilder};
 use tower_http::catch_panic::CatchPanicLayer;
 use tower_http::services::ServeDir;
-use tower_http::trace::{
-    DefaultOnRequest, DefaultOnResponse, HttpMakeClassifier,
-    TraceLayer,
-};
-use tracing::{Level, Span, error, info, info_span};
+use tower_http::trace::{DefaultOnRequest, DefaultOnResponse, HttpMakeClassifier, TraceLayer};
+use tracing::{error, info, info_span, Level, Span};
 use uuid::Uuid;
 
 mod constants;
@@ -68,8 +65,8 @@ async fn main() {
         .nest("/user", user_api::apis())
         .nest("/public/base", public_info_api::apis())
         .nest("/public/auth", public_auth_api::apis())
-        .layer(ServiceBuilder::new().layer(log_trace_id_layer()))// 日志添加trace_id
-        .layer(CatchPanicLayer::custom(handle_panic))// 处理panic日志
+        .layer(ServiceBuilder::new().layer(log_trace_id_layer())) // 日志添加trace_id
+        .layer(CatchPanicLayer::custom(handle_panic)) // 处理panic日志
         .fallback_service(routes_static());
 
     let addr = "127.0.0.1:3000";
@@ -117,9 +114,7 @@ fn check_for_backend(pool: &DbPool) -> Result<(), diesel::result::Error> {
     })?;
 
     // 执行简单的查询以检查连接
-    diesel::sql_query("SELECT 1")
-        .execute(&mut conn)
-        .map_err(|e| e)?;
+    diesel::sql_query("SELECT 1").execute(&mut conn)?;
 
     Ok(())
 }
@@ -135,7 +130,9 @@ fn init_tracing() {
 }
 
 /// 初始化trace_id
-fn log_trace_id_layer() -> TraceLayer<HttpMakeClassifier, impl Fn(&Request<Body>) -> Span + Clone + Send + Sync + 'static> {
+fn log_trace_id_layer(
+) -> TraceLayer<HttpMakeClassifier, impl Fn(&Request<Body>) -> Span + Clone + Send + Sync + 'static>
+{
     TraceLayer::new_for_http()
         .make_span_with(|request: &Request<_>| {
             // 尝试从 header 中获取 trace_id，如果没有则生成新的
