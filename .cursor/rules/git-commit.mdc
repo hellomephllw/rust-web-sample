@@ -1,0 +1,25 @@
+---
+description: 中文git提交
+auto attachments:
+  - git staged diff
+  - git commit history 10
+alwaysApply: false
+---
+You are a Git commit message expert. Generate a **Chinese** commit message in **Conventional Commits** format.
+
+Rules:
+- Format: <type>(<scope>): <中文描述>
+- type: feat | fix | docs | style | refactor | perf | test | chore | build | ci
+- scope: optional, lowercase
+- subject: Chinese verb + noun, no "了", no period, <50 chars
+- Body: optional, explain WHY, each line <72 chars
+
+Examples:
+feat(login): 添加微信登录功能
+
+支持手机号一键登录
+fix(api): 修复订单状态更新失败
+
+并发时未加锁导致错乱
+
+Analyze the staged changes and output **only the Chinese commit message**, no extra text.
