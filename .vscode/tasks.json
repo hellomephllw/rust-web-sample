@@ -6,11 +6,15 @@
             "label": "cargo build",
             "type": "shell",
             "command": "cargo",
-            "args": ["build"],
+            "args": [
+                "build"
+            ],
             "options": {
-              "cwd": "${workspaceFolder}"
+                "cwd": "${workspaceFolder}"
             },
-            "problemMatcher": ["$rustc"],
+            "problemMatcher": [
+                "$rustc"
+            ],
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -23,19 +27,29 @@
             "options": {
                 "cwd": "${workspaceFolder}"
             },
-            "problemMatcher": ["$rustc"]
+            "problemMatcher": [
+                "$rustc"
+            ]
         },
         {
             "label": "cargo run (dev)",
             "type": "shell",
             "command": "cargo",
-            "args": ["run", "--", "--profile", "dev"],
+            "args": [
+                "run",
+                "--",
+                "--profile",
+                "dev"
+            ],
             "options": {
                 "cwd": "${workspaceFolder}"
             },
-            "problemMatcher": ["$rustc"],
-            "dependsOn": ["cargo clean & build"]
+            "problemMatcher": [
+                "$rustc"
+            ],
+            "dependsOn": [
+                "cargo clean & build"
+            ]
         }
     ]
-  }
-  
+}
