@@ -1,14 +1,116 @@
 {
+    // ============================================================
+    // rust-analyzer 服务器环境变量配置
+    // ============================================================
     "rust-analyzer.server.extraEnv": {
-        "RUSTUP_TOOLCHAIN": "stable"
+        // 启用 Rust 错误堆栈回溯，帮助调试
+        "RUST_BACKTRACE": "1",
+        // 指定使用稳定的 Rust 工具链（而非 nightly 或 beta）
+        "RUSTUP_TOOLCHAIN": "stable",
+        // rust-analyzer 编译产物的独立目录，避免与 cargo build 冲突
+        "CARGO_TARGET_DIR": "target/rust-analyzer"
     },
-    "editor.formatOnSave": true,
-    "rust-analyzer.checkOnSave.command": "clippy",
+
+    // ============================================================
+    // 编辑器全局配置（所有语言）
+    // ============================================================
+    
+    // 关闭保存时自动格式化（需要手动触发：Shift+Option+F）
+    "editor.formatOnSave": false,
+    
+    // 关闭编辑器内置的类型提示（如参数名、类型等），让 Cursor AI 来提供补全
+    "editor.inlayHints.enabled": "off",
+
+    // ============================================================
+    // Rust 语言特定的编辑器配置
+    // ============================================================
+    "[rust]": {
+        // 指定默认的代码格式化工具为 rust-analyzer
+        // rust-analyzer 内部会调用 rustfmt
+        "editor.defaultFormatter": "rust-lang.rust-analyzer",
+        
+        // Rust 文件也关闭自动格式化（与全局设置一致）
+        "editor.formatOnSave": false,
+        
+        // 关闭自动修复动作（如自动导入等），避免干扰 Cursor AI
+        "editor.codeActionsOnSave": {
+            "source.fixAll": "never"
+        }
+    },
+
+    // ============================================================
+    // rust-analyzer 语法检查和代码分析配置
+    // ============================================================
+    
+    // 使用 clippy 作为检查工具（比默认的 check 更严格）
+    "rust-analyzer.check.command": "clippy",
+    
+    // 传给 clippy 的额外参数
+    "rust-analyzer.check.extraArgs": [
+        // --all-targets: 检查所有目标（包括库、测试、示例等）
+        "--all-targets",
+        // --all-features: 启用所有功能特性
+        "--all-features"
+    ],
+    
+    // 开启保存文件时自动运行语法检查
+    "rust-analyzer.checkOnSave": true,
+    
+    // 启用所有 Cargo features（功能特性）
+    "rust-analyzer.cargo.allFeatures": true,
+    
+    // 从 clippy 的检查结果中加载 out dirs（宏生成的代码位置）
     "rust-analyzer.cargo.loadOutDirsFromCheck": true,
+    
+    // 启用过程宏（procedural macros）支持
+    // 过程宏是可以在编译时生成代码的宏（如 derive 宏）
     "rust-analyzer.procMacro.enable": true,
-    "lldb.launch": {
-        "sourceLanguages": [
-            "rust"
-        ]
-    }
+    
+    // 禁用某些诊断信息（减少干扰）
+    "rust-analyzer.diagnostics.disabled": [
+        // 禁用"无法解析的过程宏"错误（避免误报）
+        "unresolved-proc-macro",
+        // 禁用"死代码"警告（未使用的代码）
+        "inactive-code"
+    ],
+
+    // ============================================================
+    // rustfmt 代码格式化配置
+    // ============================================================
+    
+    // 启用 rustfmt 格式化功能
+    // 注意：rustfmt 会自动读取项目根目录 Cargo.toml 中的 edition 配置
+    "rust-analyzer.rustfmt.enable": true,
+    
+    // 启用范围格式化功能（可以只格式化选中的代码）
+    "rust-analyzer.rustfmt.enableRangeFormatting": true,
+
+    // ============================================================
+    // rust-analyzer 代码提示配置（避免与 Cursor AI 冲突）
+    // ============================================================
+    
+    // 关闭 rust-analyzer 的类型内联提示（避免干扰 Cursor AI）
+    "rust-analyzer.inlayHints.enable": false,
+    
+    // 关闭函数调用时的自动参数片段补全（避免与 Cursor AI 补全冲突）
+    "rust-analyzer.completion.addCallArgumentSnippets": false,
+    
+    // ============================================================
+    // rust-analyzer 性能和缓存优化配置
+    // ============================================================
+    
+    // 启用增量编译，加快检查速度
+    "rust-analyzer.cargo.buildScripts.enable": true,
+    
+    // 启用更快的 LSP 响应速度
+    "rust-analyzer.linkedProjects": [],
+    
+    // 启用内联宏展开（提高准确性）
+    "rust-analyzer.procMacro.attributes.enable": true,
+    
+    // 保持编译器一致（避免混合缓存导致的问题）
+    "rust-analyzer.cargo.features": "all",
+    
+    // 诊断更新频率（毫秒）
+    "rust-analyzer.diagnostics.debounce": 500
 }
