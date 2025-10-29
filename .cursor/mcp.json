@@ -1,0 +1,26 @@
+{
+    "mcpServers": {
+      "project-sequential-thinking": {
+        "command": "npx",
+        "args": [
+            "-y",
+            "@smithery/cli@latest",
+            "run",
+            "@kiennd/reference-servers",
+            "--key",
+            "d4ef14ba-1250-4b4e-bbe2-757fa35cd976"
+        ],
+        "rustMode": true,
+        "validationCommands": [
+          "cargo check",
+          "cargo clippy",
+          "cargo test --quiet"
+        ],
+        "planningTemplates": [
+          "struct design",
+          "trait bounds",
+          "async patterns"
+        ]
+      }
+    }
+  }
