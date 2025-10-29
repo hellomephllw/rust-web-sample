@@ -23,7 +23,7 @@ use tower::{service_fn, ServiceBuilder};
 use tower_http::catch_panic::CatchPanicLayer;
 use tower_http::services::ServeDir;
 use tower_http::trace::{DefaultOnRequest, DefaultOnResponse, HttpMakeClassifier, TraceLayer};
-use tracing::{error, info, info_span, Level, Span};
+use tracing::{info, info_span, Level, Span};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use uuid::Uuid;
 
