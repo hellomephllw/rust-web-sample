@@ -1,6 +1,6 @@
+use crate::constants::error_code_const::FAILED_CODE;
 use std::backtrace::Backtrace;
 use std::fmt;
-use crate::constants::error_code_const::FAILED_CODE;
 
 /// 业务异常的详细信息
 #[derive(Debug)]
@@ -22,7 +22,6 @@ impl BusinessError {
     pub fn custom(message: impl Into<String>) -> Self {
         BusinessError::new(FAILED_CODE, message)
     }
-
 }
 
 /// 为 BusinessError 实现 Display trait

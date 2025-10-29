@@ -1,2 +1,3 @@
 // 服务
-mod user;
+pub mod forum;
+pub mod user;

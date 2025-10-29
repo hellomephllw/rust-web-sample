@@ -1,6 +1,6 @@
-use crate::constants::error_code_const;
 use crate::enums::errors::common_error::CommonError;
 use crate::models::responses::response::ApiResponse;
+use crate::routes::forum::post_api;
 use crate::routes::public::public_auth_api;
 use crate::routes::public::public_info_api;
 use crate::routes::user::user_api;
@@ -24,6 +24,7 @@ use tower_http::catch_panic::CatchPanicLayer;
 use tower_http::services::ServeDir;
 use tower_http::trace::{DefaultOnRequest, DefaultOnResponse, HttpMakeClassifier, TraceLayer};
 use tracing::{error, info, info_span, Level, Span};
+use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use uuid::Uuid;
 
 mod constants;
@@ -33,8 +34,9 @@ mod errors;
 mod models;
 mod routes;
 mod schema;
+mod services;
 
-type DbPool = r2d2::Pool<ConnectionManager<MysqlConnection>>;
+use crate::core::{DbPool, RootState};
 
 #[tokio::main]
 async fn main() {
@@ -51,8 +53,7 @@ async fn main() {
     let pool = match create_db_pool() {
         Ok(p) => p,
         Err(e) => {
-            error!("数据库检查失败: {}", e);
-            return;
+            panic!("数据库检查失败: {}", e.to_string());
         }
     };
     info!("完成创建数据库连接池");
@@ -61,7 +62,8 @@ async fn main() {
     let root_state = RootState { db_pool: pool };
 
     let routes_all = Router::new()
-        .merge(routes_hello(root_state))
+        .merge(routes_hello(root_state.clone()))
+        .nest("/forum/post", post_api::apis().with_state(root_state))
         .nest("/user", user_api::apis())
         .nest("/public/base", public_info_api::apis())
         .nest("/public/auth", public_auth_api::apis())
@@ -86,11 +88,6 @@ struct Cli {
     profile: String, // 环境
 }
 
-#[derive(Clone)]
-struct RootState {
-    db_pool: DbPool,
-}
-
 /// 创建数据库连接池
 fn create_db_pool() -> Result<DbPool, diesel::result::Error> {
     let database_url = env::var("DATABASE_URL").expect(".env文件中缺失DATABASE_URL变量");
@@ -107,10 +104,8 @@ fn create_db_pool() -> Result<DbPool, diesel::result::Error> {
 /// 检查数据库连接的函数
 fn check_for_backend(pool: &DbPool) -> Result<(), diesel::result::Error> {
     let mut conn = pool.get().map_err(|e| {
-        diesel::result::Error::DatabaseError(
-            diesel::result::DatabaseErrorKind::Unknown,
-            Box::new(e.to_string()),
-        )
+        let boxed: Box<dyn std::error::Error + Send + Sync> = Box::new(e);
+        diesel::result::Error::QueryBuilderError(boxed)
     })?;
 
     // 执行简单的查询以检查连接
@@ -121,12 +116,16 @@ fn check_for_backend(pool: &DbPool) -> Result<(), diesel::result::Error> {
 
 /// 初始化tracing
 fn init_tracing() {
-    tracing_subscriber::fmt()
-        .with_env_filter("info,tower_http=info")
-        .with_file(true) // 打印日志所在文件
-        .with_line_number(true) // 打印日志所在行
-        .with_ansi(true) // 日志颜色
-        .init();
+    tracing_subscriber::registry()
+        .with(
+            fmt::layer()
+                .with_file(true) // 打印日志所在文件
+                .with_line_number(true) // 打印日志所在行
+                .with_ansi(true) // 日志颜色
+                .with_filter(EnvFilter::new("info,tower_http=info")),
+        )
+        .try_init()
+        .expect("初始化tracing失败");
 }
 
 /// 初始化trace_id
@@ -154,8 +153,7 @@ fn log_trace_id_layer(
 
 /// 统一处理panic
 fn handle_panic(_err: Box<dyn std::any::Any + Send + 'static>) -> Response {
-    let response =
-        ApiResponse::<()>::failed(error_code_const::FAILED_CODE, "服务器繁忙".to_string());
+    let response = ApiResponse::<()>::failed("服务器繁忙".to_string());
     response.into_response()
 }
 
@@ -174,12 +172,12 @@ fn routes_static() -> Router {
     )
 }
 
-fn routes_hello(app_state: RootState) -> Router {
+fn routes_hello(root_state: RootState) -> Router {
     Router::new()
         .route("/hello", get(hello_handler))
         .route("/hello/:name", get(hello_path_handler))
         .route("/hello/users", get(get_users))
-        .with_state(app_state)
+        .with_state(root_state)
 }
 
 #[derive(Debug, Deserialize)]
@@ -190,7 +188,6 @@ struct HelloParams {
 async fn hello_handler(Query(params): Query<HelloParams>) -> Result<String, CommonError> {
     info!("params: {params:?}");
     if params.name.is_none() {
-        // return Err(CommonError::Biz(BusinessError::custom("name is empty")));
         panic!("name is empty")
     }
     Ok(format!("Hello World! {}", params.name.unwrap()))
@@ -201,8 +198,8 @@ async fn hello_path_handler(Path(name): Path<String>) -> impl IntoResponse {
     Html(format!("Hello World! {name}"))
 }
 
-async fn get_users(State(state): State<RootState>) -> Result<String, CommonError> {
-    let mut conn = state.db_pool.get()?;
+async fn get_users(State(root_state): State<RootState>) -> Result<String, CommonError> {
+    let mut conn = root_state.db_pool.get()?;
 
     // 假设有一个 users 表，加载所有用户
     use crate::schema::rust_user::dsl::*;
