@@ -45,13 +45,8 @@
     // 使用 clippy 作为检查工具（比默认的 check 更严格）
     "rust-analyzer.check.command": "clippy",
     
-    // 传给 clippy 的额外参数
-    "rust-analyzer.check.extraArgs": [
-        // --all-targets: 检查所有目标（包括库、测试、示例等）
-        "--all-targets",
-        // --all-features: 启用所有功能特性
-        "--all-features"
-    ],
+    // 传给 clippy 的额外参数（避免与下方 cargo 配置重复注入）
+    "rust-analyzer.check.extraArgs": [],
     
     // 开启保存文件时自动运行语法检查
     "rust-analyzer.checkOnSave": true,
@@ -94,6 +89,9 @@
     
     // 关闭函数调用时的自动参数片段补全（避免与 Cursor AI 补全冲突）
     "rust-analyzer.completion.addCallArgumentSnippets": false,
+
+    // 临时关闭语义高亮，规避 semanticTokens 请求触发的崩溃
+    "editor.semanticHighlighting.enabled": false,
     
     // ============================================================
     // rust-analyzer 性能和缓存优化配置
@@ -107,9 +105,6 @@
     
     // 启用内联宏展开（提高准确性）
     "rust-analyzer.procMacro.attributes.enable": true,
-    
-    // 保持编译器一致（避免混合缓存导致的问题）
-    "rust-analyzer.cargo.features": "all",
     
     // 诊断更新频率（毫秒）
     "rust-analyzer.diagnostics.debounce": 500
