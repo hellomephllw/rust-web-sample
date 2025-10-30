@@ -21,6 +21,12 @@
           "trait bounds",
           "async patterns"
         ]
+      },
+      "cursor_rust_tools": {
+          "url": "http://localhost:4000/sse",
+          "env": {
+              "API_KEY": ""
+          }
       }
     }
   }
